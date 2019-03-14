@@ -25,8 +25,11 @@ function word_stems(words::Array{SubString})
   return td.tokens
 end
 
-function parse(inputfile)
+"""
+Update your knowledge graph.
 
+"""
+function update!(maindb::SQLite.DB, inputfile::AbstractString)
   for line in eachline(inputfile)
     line = lstrip(line)
     if istartwith(line, "*")  # if this is a proposition
@@ -35,7 +38,9 @@ function parse(inputfile)
       if length(nodes) != nothing
         descr = line
         stems = word_stems(nodes)
-        # add to tables
+        # populate tables
+        refs = join(refs, ";")
+        add_proposition!(maindb, line, nodes, stems, refs)
       end
     end
   end

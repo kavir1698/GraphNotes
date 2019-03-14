@@ -2,6 +2,8 @@ module Notes2Graph
 
 import TextAnalysis: TokenDocument, stem!
 import SQLite; sqlite = SQLite
+import DataFrames: DataFrame
+import Combinatorics: combinations
 include("databases.jl")
 include("parse.jl")
 

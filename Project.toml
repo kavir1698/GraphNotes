@@ -4,5 +4,7 @@ authors = ["Ali R. Vahdati <arv.kavir@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 TextAnalysis = "a2db99b7-8b79-58f8-94bf-bbc811eef33d"
