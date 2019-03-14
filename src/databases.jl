@@ -1,35 +1,52 @@
 
 function create_bibfile(savelocation)
   bibfile = joinpath(savelocation, "internalbibtex.bib")
+  if isfile(bibfile)
+    return bibfile
+  end
   open(bibfile, "w")
   return bibfile
 end
 
-function initialize_databases()
+function load_database(savelocation)
+  maindb = sqlite.DB(joinpath(savelocation, "notes2graphdb"))
+  return maindb
+end
+
+
+## SQLite functions
+
+function initialize_database()
+  maindb = sqlite.DB(joinpath(savelocation, "notes2graphdb"))
   # t1 is a table that keeps a list of all nodes, i.e. concepts
-  t1 = table([0], ["noname"], names=[:nodeid, :nodename], pkey=[:nodeid, :nodename])
+  stmt = "CREATE TABLE t1 (nodeid INTEGER NOT NULL UNIQUE, nodename TEXT NOT NULL UNIQUE, PRIMARY KEY (nodeid, nodename))"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
+
   # t2 is a table that keeps a list of descriptions and references for each node or relation
-  t2 = table([0], ["nodescr"], [["noref"]], names=[:descrid, :descr, :ref], pkey=[:descrid, :descr])
+  stmt = "CREATE TABLE t2 (descrid INTEGER NOT NULL UNIQUE PRIMARY KEY, descr TEXT NOT NULL UNIQUE, ref TEXT)"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
+
   # t3 is a table that keeps a list of associations between node ids and description ids
-  t3 = table([0], [0], names=[:nodeid, :descrid], pkey=[:nodeid, :descrid])
+  stmt = "CREATE TABLE t3 (nodeid INTEGER NOT NULL, descrid INTEGER NOT NULL, PRIMARY KEY (nodeid, descrid))"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
+
   # t4 is a table that keeps a list of associations between related node ids
-  t4 = table([0], [0], names=[:nodeid, :relatedid], pkey=[:nodeid, :relatedid])
+  stmt = "CREATE TABLE t4 (nodeid INTEGER NOT NULL, relatedid INTEGER NOT NULL, PRIMARY KEY (nodeid, relatedid))"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
+
   # t5 is a table that keeps a list of hierarchies between node ids.
-  t5 = table([0], [0], names=[:nodeid, :upid], pkey=[:nodeid, :upid])
-  return (t1=t1, t2=t2, t3=t3, t4=t4, t5=t5)
-end
+  stmt = "CREATE TABLE t5 (nodeid INTEGER NOT NULL, upid INTEGER NOT NULL, PRIMARY KEY (nodeid, upid))"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
 
-function save_empty_databases(tables::NamedTuple, savelocation)
-  for key in keys(tables)
-    save(tables[key], joinpath(savelocation, string(key)))
-  end
-end
+  # t6 is a table that keeps a list of all the derived words for each stem in the table 1 as `nodename`
+  stmt = "CREATE TABLE t6 (nodeid INTEGER NOT NULL, derivatives TEXT NOT NULL, PRIMARY KEY (nodeid, derivatives))"
+  j = sqlite.Stmt(maindb, stmt)
+  sqlite.execute!(j)
 
-function load_databases(savelocation)
-  t1 = load(joinpath(savelocation, "t1"))
-  t2 = load(joinpath(savelocation, "t2"))
-  t3 = load(joinpath(savelocation, "t3"))
-  t4 = load(joinpath(savelocation, "t4"))
-  t5 = load(joinpath(savelocation, "t5"))
-  return (t1=t1, t2=t2, t3=t3, t4=t4, t5=t5)
+  return maindb
 end

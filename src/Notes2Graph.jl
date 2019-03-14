@@ -1,24 +1,27 @@
 module Notes2Graph
 
-using JuliaDB
-using CSV
+import TextAnalysis: TokenDocument, stem!
+import SQLite; sqlite = SQLite
 include("databases.jl")
+include("parse.jl")
 
-greet() = print("Hello World!")
+function main()
+  # parse bibtex files and add entries to the databases internal bibtex
 
-# parse bibtex files and add entries to the databases internal bibtex
 
+  # load/create databases
+  if firsttime # create five tables to be filled
+    bibfile = create_bibfile(savelocation)
+    maindb = initialize_database();
+  else # load the tables from file
+    naindb = load_database(savelocation)
+  end
 
-if firsttime # create five tables to be filled
-  bibfile = create_bibfile(savelocation)
-  tables = initialize_databases()
-  save_empty_databases(tables, savelocation)
-else # load the tables from file
-  tables = load_databases(savelocation)
+  # parse text files
+  # get stems of words
+  # fill tables
+  # call information
+  # edit entries in tables
 end
-
-# parse text files
-# fill tables
-# call information
 
 end # module

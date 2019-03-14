@@ -4,5 +4,5 @@ authors = ["Ali R. Vahdati <arv.kavir@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-JuliaDB = "a93385a2-3734-596a-9a66-3cfbb77141e6"
+SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
+TextAnalysis = "a2db99b7-8b79-58f8-94bf-bbc811eef33d"
