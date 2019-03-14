@@ -95,7 +95,9 @@ function add_proposition!(maindb::SQLite.DB, proposition, nodes, stems, refs)
   for nn in 1:nnodes
     nodeid = add_t1!(maindb, stems[nn])
     all_nodeids[nn] = nodeid
-    add_t6!(maindb, nodeid, nodes[nn])
+    if stems[nn] != nodes[nn]
+      add_t6!(maindb, nodeid, nodes[nn])
+    end
     descrid = add_t2!(maindb, proposition, refs)
     add_t3!(maindb, nodeid, descrid)
   end

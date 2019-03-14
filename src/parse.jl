@@ -32,7 +32,7 @@ Update your knowledge graph.
 function update!(maindb::SQLite.DB, inputfile::AbstractString)
   for line in eachline(inputfile)
     line = lstrip(line)
-    if istartwith(line, "*")  # if this is a proposition
+    if startswith(line, "*")  # if this is a proposition
       # Check for hash-tagged words 
       nodes, refs = find_hashtags(line)
       if length(nodes) != nothing
@@ -47,4 +47,4 @@ function update!(maindb::SQLite.DB, inputfile::AbstractString)
 end
 
 
-# line = "asdfa #sdf asdf #[sd sd] asdfa #tes. [@reg1] and [@ref2;@ref3] and [see @ref4, pp 32] and [@ref5 ch. 4; @ref6]"
+# line = "  * asdfa #sdf asdf #[sd sd] asdfa #tes. [@reg1] and [@ref2;@ref3] and [see @ref4, pp 32] and [@ref5 ch. 4; @ref6]"

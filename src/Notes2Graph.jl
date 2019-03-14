@@ -16,7 +16,7 @@ function main()
     bibfile = create_bibfile(savelocation)
     maindb = initialize_database();
   else # load the tables from file
-    naindb = load_database(savelocation)
+    maindb = load_database(savelocation)
   end
 
   # parse text files
