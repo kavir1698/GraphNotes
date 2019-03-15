@@ -36,7 +36,6 @@ function update!(maindb::SQLite.DB, inputfile::AbstractString)
       # Check for hash-tagged words 
       nodes, refs = find_hashtags(line)
       if length(nodes) != nothing
-        descr = line
         stems = word_stems(nodes)
         # populate tables
         refs = join(refs, ";")
