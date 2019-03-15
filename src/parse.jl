@@ -44,6 +44,3 @@ function update!(maindb::SQLite.DB, inputfile::AbstractString)
     end
   end
 end
-
-
-# line = "  * asdfa #sdf asdf #[sd sd] asdfa #tes. [@reg1] and [@ref2;@ref3] and [see @ref4, pp 32] and [@ref5 ch. 4; @ref6]"

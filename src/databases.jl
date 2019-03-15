@@ -16,11 +16,11 @@ end
 function initialize_database(savelocation)
   maindb = sqlite.DB(joinpath(savelocation, "notes2graphdb.sqlite"))
   # t1 is a table that keeps a list of all nodes, i.e. concepts
-  stmt = "CREATE TABLE IF NOT EXISTS t1 (nodeid INTEGER NOT NULL UNIQUE, nodename TEXT NOT NULL UNIQUE, PRIMARY KEY (nodeid, nodename))"
+  stmt = "CREATE TABLE IF NOT EXISTS t1 (nodeid INTEGER NOT NULL UNIQUE, nodename TEXT NOT NULL UNIQUE COLLATE NOCASE, PRIMARY KEY (nodeid, nodename))"
   sqlite.query(maindb, stmt)
 
   # t2 is a table that keeps a list of descriptions and references for each node or relation
-  stmt = "CREATE TABLE IF NOT EXISTS t2 (descrid INTEGER NOT NULL UNIQUE PRIMARY KEY, descr TEXT NOT NULL UNIQUE, ref TEXT)"
+  stmt = "CREATE TABLE IF NOT EXISTS t2 (descrid INTEGER NOT NULL UNIQUE PRIMARY KEY, descr TEXT NOT NULL UNIQUE COLLATE NOCASE, ref TEXT)"
   sqlite.query(maindb, stmt)
 
   # t3 is a table that keeps a list of associations between node ids and description ids
@@ -36,7 +36,7 @@ function initialize_database(savelocation)
   sqlite.query(maindb, stmt)
 
   # t6 is a table that keeps a list of all the derived words for each stem in the table 1 as `nodename`
-  stmt = "CREATE TABLE IF NOT EXISTS t6 (nodeid INTEGER NOT NULL, derivative TEXT NOT NULL, PRIMARY KEY (nodeid, derivative))"
+  stmt = "CREATE TABLE IF NOT EXISTS t6 (nodeid INTEGER NOT NULL, derivative TEXT NOT NULL COLLATE NOCASE, PRIMARY KEY (nodeid, derivative))"
   sqlite.query(maindb, stmt)
 
   return maindb
@@ -112,4 +112,70 @@ function table_length(maindb::SQLite.DB, tablename)
   # nrows = sqlite.execute!(maindb, "SELECT Count(1) FROM $tablename")
   nrows = DataFrame(sqlite.query(maindb, "SELECT Count(1) FROM $tablename"))[1,1]
   return nrows
+end
+
+## Functions to retrieve information about a concept##
+
+function derivatives(maindb, nodeid)
+  stmt = "SELECT derivative FROM t6 WHERE nodeid = $nodeid"
+  result = DataFrame(sqlite.query(maindb, stmt))
+  if size(result)[1] == 0
+    return ""
+  else
+    ddd = result[1]
+    return join(ddd, ", ")
+  end
+end
+
+function find_nodeid(maindb, query)
+  stmt = "SELECT nodeid FROM t1 WHERE nodename = '$query'"
+  result = DataFrame(sqlite.query(maindb, stmt))
+  if size(result)[1] == 0 # if not found search t6
+    stmt = "SELECT nodeid FROM t6 WHERE derivative = '$query'"
+    result = DataFrame(sqlite.query(maindb, stmt))
+    if size(result)[1] == 0
+      @info "Query is not in the database"
+      return
+    end
+  end
+  nodeid = result[1,1]
+  return nodeid
+end
+
+function related_concepts(maindb, nodeid)
+  stmt = "SELECT relatedid FROM t4 WHERE nodeid = $nodeid"
+  result = DataFrame(sqlite.query(maindb, stmt))
+  if size(result)[1] == 0
+    return ""
+  else
+    nmatches = length(result[1])
+    nodenames = Array{String}(undef, nmatches)
+    for m in 1:nmatches
+      idd = result[1][m]
+      stmt = "SELECT nodename FROM t1 WHERE nodeid = $idd"
+      match = DataFrame(sqlite.query(maindb, stmt))[1,1]
+      nodenames[m] = match
+    end
+    return join(nodenames, ", ")
+  end
+end
+
+function find_descrid(maindb, nodeid)
+  stmt = "SELECT descrid FROM t3 WHERE nodeid = $nodeid"
+  result = DataFrame(sqlite.query(maindb, stmt))[1]
+  return result
+end
+
+function descriptions(maindb, nodeid)
+  descrids = find_descrid(maindb, nodeid)
+  ndescrs = length(descrids)
+  descrs = Array{String}(undef, ndescrs)
+  refs = Array{String}(undef, ndescrs)
+  for ind in 1:ndescrs
+    stmt = "SELECT descr, ref FROM t2 WHERE descrid = $(descrids[ind])"
+    result = DataFrame(sqlite.query(maindb, stmt))
+    descrs[ind] = result[1,1]
+    refs[ind] = result[1,2]
+  end
+  return descrs, refs
 end
