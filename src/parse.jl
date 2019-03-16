@@ -48,3 +48,54 @@ end
 "Copy the bibtex entry from the original file to the programs central file"
 function copy_bibentry()
 end
+
+## ArgParse
+function parse_commandline()
+  settings = ap.ArgParseSettings(
+                version="0.1",
+                prog="Notes2graph",
+                description="Create a graph from your notes written in Pandoc format. Each note to be considered should have a bullet point (*). Moreover, keywords should be tagged with a hash (#). If you want to tag compound words that have spaces between them, wrap them in square brackets. E.g. #[compound word].",
+                add_version=true,
+                add_help=true,
+                autofix_names=true,
+                )
+
+  argtable = ap.add_arg_table(
+                settings,
+                ["--notefile", "-n"],
+                Dict(
+                  :help => "Add your notes to the graph. Supply notes file.",
+                  :arg_type => String
+                ),
+                ["--reffile", "-r"],
+                Dict(
+                  :help => "If a notefile is mentioned, add a reference file in the form of a bibtex file.",
+                  :arg_type => String
+                )
+                )
+
+  parsed_args = ap.parse_args(ARGS, settings, as_symbols=true)
+  return parsed_args
+end
+
+function main()
+  parsed_args = parse_commandline()
+  
+  # load/create databases
+  dbfile = joinpath(savelocation, "notes2graphdb.sqlite")
+  bibfile = joinpath(savelocation, "internalbibtex.bib")
+  if !isfile(dbfile) # create tables to be filled
+    bibfile = create_bibfile(savelocation)
+    maindb = initialize_database(savelocation);
+  else # load the tables from file
+    maindb = load_database(savelocation)
+  end
+  
+  # parse text files
+  # parse bibtex files and add entries to the databases internal bibtex
+  # get stems of words
+  # fill tables
+  # call information
+  # edit entries in tables
+  # pretty print results
+end
