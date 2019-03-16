@@ -179,3 +179,23 @@ function descriptions(maindb, nodeid)
   end
   return descrs, refs
 end
+
+"Returns descrids of descriptions of relations between node1id and node2id"
+function relationid(maindb, node1id::Integer, node2id::Integer)
+  stmt = "SELECT descrid FROM t3 WHERE nodeid = $node1id INTERSECT SELECT descrid FROM t3 WHERE nodeid = $node2id"
+  results = DataFrame(sqlite.query(maindb, stmt))[1]
+  return results
+end
+
+function relation_descr(maindb, node1::AbstractString, node2::AbstractString)
+  node1id = find_nodeid(maindb, node1)
+  node2id = find_nodeid(maindb, node2)
+  relationids = relationid(maindb, node1id, node2id)
+  ndescr = length(relationids)
+  descrs = Array{Tuple}(undef, ndescr)
+  for nn in 1:ndescr
+    descr = descriptions(maindb, relationids[nn])
+    descrs[nn] =  descr
+  end
+  return descrs
+end

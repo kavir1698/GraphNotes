@@ -29,7 +29,7 @@ end
 Update your knowledge graph.
 
 """
-function update!(maindb::SQLite.DB, inputfile::AbstractString)
+function update!(maindb::SQLite.DB, inputfile::AbstractString)  
   for line in eachline(inputfile)
     line = lstrip(line)
     if startswith(line, "*")  # if this is a proposition
