@@ -44,3 +44,7 @@ function update!(maindb::SQLite.DB, inputfile::AbstractString)
     end
   end
 end
+
+"Copy the bibtex entry from the original file to the programs central file"
+function copy_bibentry()
+end
