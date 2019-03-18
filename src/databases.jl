@@ -127,6 +127,7 @@ function derivatives(maindb, nodeid)
   end
 end
 
+"Returns node ID of a query"
 function find_nodeid(maindb, query)
   stmt = "SELECT nodeid FROM t1 WHERE nodename = '$query'"
   result = DataFrame(sqlite.query(maindb, stmt))
@@ -142,6 +143,7 @@ function find_nodeid(maindb, query)
   return nodeid
 end
 
+"Returns IDs if related nodes to a given ID"
 function related_concepts(maindb, nodeid)
   stmt = "SELECT relatedid FROM t4 WHERE nodeid = $nodeid"
   result = DataFrame(sqlite.query(maindb, stmt))
