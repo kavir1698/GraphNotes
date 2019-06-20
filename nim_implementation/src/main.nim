@@ -1,7 +1,8 @@
 import os
 import db_sqlite
 import strutils  # for working with strings
-import itertools
+import itertools  # for combinations function
+import nre except toSeq # regex library
 
 var allparams = commandLineParams()
 
@@ -199,3 +200,37 @@ proc relation_descr(maindb: db_sqlite.DbConn, node1: string, node2: string): seq
     descrs[nn] = descr
   return descrs
 
+# parsig functions
+
+proc find_hashtags(line: string): seq[seq[string]] =
+  var matched_phrases: seq[string] = @[]
+  var references: seq[string] = @[]
+  let reg = re"i(#\w+)|(#\[[\w|\s]+\])|(@\w+)"  # either a series of characters without white-space or anything inside [] or references identified by @somename
+  var m: seq[string] = line.findAll(reg, 1, int.high)
+  var mlen: int = m.len
+  for vv in m:
+    if startsWith(vv, "#"):
+      if startsWith(vv, "#["):
+        matched_phrases.add(vv[3..vv.high-1])
+      else:
+        matched_phrases.add(vv[2..vv.high])
+    else:
+      references.add(vv[2..vv.high])
+  return @[matched_phrases, references]
+
+# TO DO: install porter stemmer and take word stems
+
+proc update(maindb: db_sqlite.DbConn, inputfile: string)=
+  ## Update the knowledge graph
+  for line in lines(inputfile):
+    var line: string = strip(line)
+    if line.startswith("*"):  # if this is a proposition
+      # Check for hash-tagged words 
+      var allr: seq[seq[string]] = find_hashtags(line)
+      var nodes: seq[string] = allr[0]
+      var refs: seq[string] = allr[1]
+      if nodes.len != 0:
+        # stems = word_stems(nodes)
+        var stems: seq[string] = nodes
+        # var refs2: string = join(refs, ";")
+        add_proposition(maindb, line, nodes, stems, refs)  # populate tables
