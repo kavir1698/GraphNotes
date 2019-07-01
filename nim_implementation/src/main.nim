@@ -110,14 +110,17 @@ proc add_proposition(maindb: db_sqlite.DbConn, proposition: string, nodes: seq, 
   ## Populate all tables
 
   var nnodes: int = nodes.len
-  var all_nodeids: array = array[1..nnodes, int]
-  for nn in 1:nnodes:
+  var all_nodeids = newSeq[int](nnodes)
+  for ni in 0..<nnodes:
+    all_nodeids[ni] = ni+1
+  for nn in 1..nnodes:
     var nodeid: int = add_t1(maindb, stems[nn])
     all_nodeids[nn] = nodeid
     if stems[nn] != nodes[nn]:
       add_t6(maindb, nodeid, nodes[nn])
-    var descrid: int = add_t2(maindb, proposition, refs)
-    add_t3(maindb, nodeid, descrid)
+    for rff in 1..refs.len:
+      var descrid: int = add_t2(maindb, proposition, refs[rff])
+      add_t3(maindb, nodeid, descrid)
   if all_nodeids.len > 1:
     var combs: array = combinations(all_nodeids, 2)
     for comb in combs:
@@ -207,7 +210,6 @@ proc find_hashtags(line: string): seq[seq[string]] =
   var references: seq[string] = @[]
   let reg = re"i(#\w+)|(#\[[\w|\s]+\])|(@\w+)"  # either a series of characters without white-space or anything inside [] or references identified by @somename
   var m: seq[string] = line.findAll(reg, 1, int.high)
-  var mlen: int = m.len
   for vv in m:
     if startsWith(vv, "#"):
       if startsWith(vv, "#["):
