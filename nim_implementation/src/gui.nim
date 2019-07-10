@@ -1,6 +1,6 @@
 import nigui
 import nigui/msgbox
-include main
+include db
 
 app.init()
 # Initialization is mandatory.
@@ -89,11 +89,12 @@ container.onKeyDown = proc(event: KeyboardEvent) =
 
 ### functions
 discard create_bibfile(saveloc)
+var db: db_sqlite.DbConn
 let dbfile: string = joinpath(saveloc, "notes2graphdb.sqlite")
 if existsFile(dbfile):
-  var db: db_sqlite.DbConn = load_database(saveloc)
+  db = load_database(saveloc)
 else:
-  var db: db_sqlite.DbConn = initialize_database(saveloc)
+  db = initialize_database(saveloc)
 
 
 textArea.addLine("Database and bibfile loaded in the current directory.")
