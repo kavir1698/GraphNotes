@@ -239,7 +239,7 @@ proc relation_descr(maindb: db_sqlite.DbConn, node1: string, node2: string): seq
 proc find_hashtags(line: string): seq[seq[string]] =
   var matched_phrases: seq[string] = @[]
   var references: seq[string] = @[]
-  let reg = re"i(#\w+)|(#\[[\w|\s]+\])|(@\w+)"  # either a series of characters without white-space or anything inside [] or references identified by @somename
+  let reg = re"(#\w+)|(#\[[\w|\s]+\])|(@\w+)"  # either a series of characters without white-space or anything inside [] or references identified by @somename
   var m: seq[string] = line.findAll(reg, 1, int.high)
   for vv in m:
     if startsWith(vv, "#"):
@@ -260,19 +260,21 @@ proc find_hashtags(line: string): seq[seq[string]] =
 proc update(maindb: db_sqlite.DbConn, inputfile: string): int =
   ## Update the knowledge graph
   for line in lines(inputfile):
-    var line2: string = strip(line)
+    var line2: TaintedString = strip(line)
     # if this is a proposition
     if line2.startswith("*"): 
       # Check for hash-tagged words 
       var allr: seq[seq[string]] = find_hashtags(line2)
-      var nodes: seq[string] = allr[0]
-      var refs: seq[string] = allr[1]
-      if nodes.len != 0:
-        # TODO: install porter stemmer and take word stems
-        # stems = word_stems(nodes)
-        var stems: seq[string] = nodes
-        # var refs2: string = join(refs, ";")
-        discard add_proposition(maindb, line2, nodes, stems, refs)  # populate tables
+      if allr[0].len > 0:
+        # there were hash tags in line
+        var nodes: seq[string] = allr[0]
+        var refs: seq[string] = allr[1]
+        if nodes.len != 0:
+          # TODO: install porter stemmer and take word stems
+          # stems = word_stems(nodes)
+          var stems: seq[string] = nodes
+          # var refs2: string = join(refs, ";")
+          discard add_proposition(maindb, line2, nodes, stems, refs)  # populate tables
       
   return 0
   

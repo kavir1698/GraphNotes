@@ -90,7 +90,7 @@ container.onKeyDown = proc(event: KeyboardEvent) =
 ### functions
 discard create_bibfile(saveloc)
 var db: db_sqlite.DbConn
-let dbfile: string = joinpath(saveloc, "notes2graphdb.sqlite")
+let dbfile: string = absolutePath(joinpath(saveloc, "notes2graphdb.sqlite"))
 if existsFile(dbfile):
   db = load_database(saveloc)
 else:
@@ -110,7 +110,7 @@ button.onClick = proc(event: ClickEvent) =
   dialog.multiple = false  # only a single file can be selected
   dialog.directory = "./"
   dialog.run()
-  textArea.addLine("Note file: " & dialog.files[0])
+  # textArea.addLine("Note file: " & dialog.files[0])
   notefile = dialog.files[0]
   discard update(db, notefile)
 
