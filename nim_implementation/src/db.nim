@@ -20,7 +20,7 @@ proc create_bibfile(savelocation: string): string =
 
 proc load_database(savelocation: string): db_sqlite.DbConn =
   var filename: string = joinpath(savelocation, "notes2graphdb.sqlite")
-  let maindb = db_sqlite.open(filename, "", "", "")  ## user, password, database name can be empty. These params are not used on db_sqlite module.
+  var maindb = db_sqlite.open(filename, "", "", "")  ## user, password, database name can be empty. These params are not used on db_sqlite module.
   return maindb
 
 
@@ -68,16 +68,16 @@ proc dblen(maindb: db_sqlite.DbConn, query: SqlQuery): int=
 proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
   var nodeid: int = dblen(maindb, "t1")
   # var nodename: string = replace(nodename, "'", "''")
-  var nodename: string = dbQuote(nodename)
+  var nodename2: string = dbQuote(nodename)
   # if node name does not exist
   try:
-    var stmt2: string = "INSERT INTO t1 (nodeid, nodename) VALUES ($1, '$2')" % [$nodeid, nodename]
+    var stmt2: string = "INSERT INTO t1 (nodeid, nodename) VALUES ($1, $2)" % [$nodeid, nodename2]
     maindb.exec(sql(stmt2))
     return nodeid
 
   except:
-    var stmt3: string = "SELECT nodeid FROM t1 WHERE nodename = '$1'" % nodename
-    var nodeid: int = dblen(maindb, sql(stmt3))
+    var stmt3: string = "SELECT nodeid FROM t1 WHERE nodename = $1" % nodename2
+    nodeid = dblen(maindb, sql(stmt3))
     return nodeid
 
 
@@ -85,7 +85,7 @@ proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
 proc add_t2(maindb: db_sqlite.DbConn, descr: string, reff: string): int =
   # var descr: string = replace(descr, "'", "''")
   var descr: string = dbQuote(descr)  # replace single quote with ''
-  var cmd: string = "INSERT OR IGNORE INTO t2 (descr, reff) VALUES ('$1', '$2')" % [descr, reff]
+  var cmd: string = "INSERT OR IGNORE INTO t2 (descr, ref) VALUES ($1, '$2')" % [descr, reff]
   var stmt: SqlQuery = sql(cmd)
   maindb.exec(stmt)
   var descrrow: string = maindb.getValue(sql"SELECT MAX(descrid) FROM t2")
@@ -113,7 +113,7 @@ proc add_t4(maindb: db_sqlite.DbConn, nodeid: int, relatedid: int)=
 
 proc add_t6(maindb: db_sqlite.DbConn, nodeid: int, derivative: string)=
   var derivative: string = dbQuote(derivative)
-  var cmd: string = "INSERT OR IGNORE INTO t6 (nodeid, derivative) VALUES ($1, '$2')" % [$nodeid, derivative]
+  var cmd: string = "INSERT OR IGNORE INTO t6 (nodeid, derivative) VALUES ($1, $2)" % [$nodeid, derivative]
   var stmt: SqlQuery = sql(cmd)
   maindb.exec(stmt)
 
@@ -125,13 +125,13 @@ proc add_proposition(maindb: db_sqlite.DbConn, proposition: string, nodes: seq, 
   for ni in 0..<nnodes:
     all_nodeids[ni] = ni+1
 
-  for nn in 1..nnodes:
+  for nn in 0..<nnodes:
     var nodeid: int = add_t1(maindb, stems[nn])
     all_nodeids[nn] = nodeid
     if stems[nn] != nodes[nn]:
       add_t6(maindb, nodeid, nodes[nn])
 
-    for rff in 1..refs.len:
+    for rff in 0..<refs.len:
       var descrid: int = add_t2(maindb, proposition, refs[rff])
       add_t3(maindb, nodeid, descrid)
 
@@ -146,7 +146,7 @@ proc add_proposition(maindb: db_sqlite.DbConn, proposition: string, nodes: seq, 
 
 proc derivatives(maindb: db_sqlite.DbConn, nodeid: int): string =
   ## Returns all the derivatives of the concept with nodeid
-  let final: seq[Row] = maindb.getAllRows(sql"SELECT derivative FROM t6 WHERE nodeid = ?", nodeid)
+  let final: seq[Row] = maindb.getAllRows(sql"SELECT derivative FROM t6 WHERE nodeid = ?", $nodeid)
   let ll: int = final.len
   if ll == 0:
     return ""
@@ -178,7 +178,7 @@ proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
 
 proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): string =
   ## Returns IDs if related nodes to a given ID
-  let final: seq[Row] = maindb.getAllRows(sql"SELECT relatedid FROM t4 WHERE nodeid = ?", nodeid)
+  let final: seq[Row] = maindb.getAllRows(sql"SELECT relatedid FROM t4 WHERE nodeid = ?", $nodeid)
   let nmatches: int = final.len
   if nmatches == 0:
     return ""
@@ -205,7 +205,7 @@ proc descriptions(maindb: db_sqlite.DbConn, nodeid: int): seq[seq[string]] =
   var descrs: seq[string] = newSeq[string](ndescrs)
   var refs: seq[string] = newSeq[string](ndescrs)
   for ind in 0..<ndescrs:
-    let final: seq[Row] = maindb.getAllRows(sql"SELECT descr, ref FROM t2 WHERE descrid = ?", descrids[ind])
+    let final: seq[Row] = maindb.getAllRows(sql"SELECT descr, ref FROM t2 WHERE descrid = ?", $descrids[ind])
     descrs[ind] = final[0][0]
     refs[ind] = result[0][1]
 
@@ -215,7 +215,7 @@ proc descriptions(maindb: db_sqlite.DbConn, nodeid: int): seq[seq[string]] =
 
 proc relationid(maindb: db_sqlite.DbConn, node1id: int, node2id: int): seq[int] =
   ## Returns descrids of descriptions of relations between node1id and node2id
-  let final: seq[Row] = maindb.getAllRows(sql"ELECT descrid FROM t3 WHERE nodeid = ? INTERSECT SELECT descrid FROM t3 WHERE nodeid = ?", node1id, node2id)
+  let final: seq[Row] = maindb.getAllRows(sql"ELECT descrid FROM t3 WHERE nodeid = ? INTERSECT SELECT descrid FROM t3 WHERE nodeid = ?", $node1id, $node2id)
   var k:seq[int] = newSeq[int](final.len)
   for i in 0..<final.len:
     k[i] = parseInt(final[i][0])
@@ -244,10 +244,10 @@ proc find_hashtags(line: string): seq[seq[string]] =
   for vv in m:
     if startsWith(vv, "#"):
       if startsWith(vv, "#["):
-        matched_phrases.add(vv[3..vv.high-1])
+        matched_phrases.add(vv[2..vv.high-1])
 
       else:
-        matched_phrases.add(vv[2..vv.high])
+        matched_phrases.add(vv[1..vv.high])
 
 
     else:

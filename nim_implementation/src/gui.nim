@@ -65,13 +65,6 @@ textArea.addLine("Save location is " & saveloc)
 # savelocButton.onClick = proc(event: ClickEvent) =
 #   var dialog = newOpenDirectoryDialog
 
-var query: string
-textBox.onKeyDown = proc(event: KeyboardEvent)=
-  if Key_Return.isDown():
-    query = textBox.text
-    textArea.addLine("Query is " & query)
-
-
 button2.onClick = proc(event: ClickEvent) =
   let res = window.msgBox("Hello.\n\nThis message box is created with \"msgBox()\" and has three buttons.", "Title of message box", "Button 1", "Button 2", "Button 3")
   textArea.addLine("Message box closed, result = " & $res)
@@ -113,6 +106,24 @@ button.onClick = proc(event: ClickEvent) =
   # textArea.addLine("Note file: " & dialog.files[0])
   notefile = dialog.files[0]
   discard update(db, notefile)
+  textArea.addLine("Notes incorporated.")
+
+
+var query: string
+textBox.onKeyDown = proc(event: KeyboardEvent)=
+  if Key_Return.isDown():
+    query = textBox.text
+    textArea.addLine("Query is " & query)
+    var queryid: int = find_nodeid(db, query)
+    if queryid == -1:
+      textArea.addLine("Query does not exist in the database.")
+    else:
+      textArea.addLine("Found the following descriptions: ")
+      var descrs: seq[seq[string]] = descriptions(db, queryid)
+      for sss in descrs:
+        textArea.addLine(sss[0])
+        textArea.addLine(sss[1])
+
 
 
 
