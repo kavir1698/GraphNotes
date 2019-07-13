@@ -160,18 +160,18 @@ proc derivatives(maindb: db_sqlite.DbConn, nodeid: int): string =
 
 proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
   ## Returns node ID of a query
-  let final: seq[Row] = maindb.getAllRows(sql"SELECT nodeid FROM t1 WHERE nodename = '?'", query)
+  var final: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t1 WHERE nodename = '$1'" % query))
   # if not found search t6
   if final.len == 0:
-    let final: seq[Row] = maindb.getAllRows(sql"SELECT nodeid FROM t6 WHERE derivative = '?'", query)
-    if final.len == 0:
+    let final2: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t6 WHERE derivative = '$1'" % query))
+    if final2.len == 0:
       echo "Query is not in the database"
       return -1
 
-    else:
-      var nodeids: string = final[0][0]
-      var nodeid: int = parseInt(nodeids)
-      return nodeid
+  else:
+    var nodeids: string = final[0][0]
+    var nodeid: int = parseInt(nodeids)
+    return nodeid
 
 
 
@@ -205,9 +205,9 @@ proc descriptions(maindb: db_sqlite.DbConn, nodeid: int): seq[seq[string]] =
   var descrs: seq[string] = newSeq[string](ndescrs)
   var refs: seq[string] = newSeq[string](ndescrs)
   for ind in 0..<ndescrs:
-    let final: seq[Row] = maindb.getAllRows(sql"SELECT descr, ref FROM t2 WHERE descrid = ?", $descrids[ind])
+    let final: seq[Row] = maindb.getAllRows(sql"SELECT descr, ref FROM t2 WHERE descrid = ?", $descrids[ind][0])
     descrs[ind] = final[0][0]
-    refs[ind] = result[0][1]
+    refs[ind] = final[0][1]
 
   var rr = @[descrs, refs]
   return rr
@@ -251,7 +251,7 @@ proc find_hashtags(line: string): seq[seq[string]] =
 
 
     else:
-      references.add(vv[2..vv.high])
+      references.add(vv[1..vv.high])
 
 
   return @[matched_phrases, references]

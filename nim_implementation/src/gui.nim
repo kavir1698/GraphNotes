@@ -120,9 +120,10 @@ textBox.onKeyDown = proc(event: KeyboardEvent)=
     else:
       textArea.addLine("Found the following descriptions: ")
       var descrs: seq[seq[string]] = descriptions(db, queryid)
-      for sss in descrs:
-        textArea.addLine(sss[0])
-        textArea.addLine(sss[1])
+      var ndescrs: int = descrs[0].len
+      for sss in 0..<ndescrs:
+        textArea.addLine(descrs[0][sss])
+        textArea.addLine(descrs[1][sss])
 
 
 
