@@ -1,5 +1,7 @@
 # GraphNotes
 
+![](https://img.shields.io/badge/GraphNotes-v0.1.0-blue.svg)](https://github.com/kavir1698/GraphNotes) 
+
 ## What is it
 
 Convert your research notes to a graph, so that finding a specific piece of information will be easier in the future.
@@ -21,7 +23,9 @@ When you need to retrieve a specific information, all you need is to search for 
   * Any word that is preceded with a hashtag "#" will be a node in the graph. E.g. #concept
     * If there are multiple works in a single concept, enclose them in "[]" and then precede it with a hashtag. E.g. #[multiple words]
   * To add citation to a description, put all the citations in a .bib file and cite the keys as follows: [@key1;@key2] 
-That's all. Here is a complete example of a single note that will be converted into a graph:
+That's all. You can then import your notes file using the `Add notes` button from the GUI.
+
+Here is a complete example of a single note that will be converted into a graph:
 
 ```
 * It has been long hypothesized that #scientists' choice of #[research problems] to work on are shaped by an ongoing tension between productive tradition and risky innovation [@Uzzi2018;@Bourdieu1975].
