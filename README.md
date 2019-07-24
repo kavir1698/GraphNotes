@@ -31,4 +31,4 @@ That's all. Here is a complete example of a single note that will be converted i
 
 To use pre-built binaries, copy the binary for your system from the `bin` folder and run it.
 
-To compile it yourself, first install [nim](https://nim-lang.org/install.html) and then compile with `nim c gui.nim` in the `src` folder.
+To compile it yourself, first install [nim](https://nim-lang.org/install.html) and then compile with `nim c GraphNotes.nim` in the `src` folder.
