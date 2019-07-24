@@ -6,8 +6,6 @@ import nre # regex library
 
 # var allparams = commandLineParams()
 
-# remember to close database maindb.close()
-
 proc create_bibfile(savelocation: string): string = 
   var bibfile = joinpath(savelocation, "internalbibtex.bib")
   if existsFile(bibfile):
@@ -18,16 +16,20 @@ proc create_bibfile(savelocation: string): string =
     return
 
 
-proc load_database(savelocation: string): db_sqlite.DbConn =
+proc load_database_dir(savelocation: string): db_sqlite.DbConn =
   var filename: string = joinpath(savelocation, "notes2graphdb.sqlite")
   var maindb = db_sqlite.open(filename, "", "", "")  ## user, password, database name can be empty. These params are not used on db_sqlite module.
   return maindb
 
+proc load_database_file(filename: string): db_sqlite.DbConn =
+  var maindb = db_sqlite.open(filename, "", "", "")  ## user, password, database name can be empty. These params are not used on db_sqlite module.
+  return maindb
 
 proc initialize_database(savelocation: string): db_sqlite.DbConn =
   var maindb: db_sqlite.DbConn = db_sqlite.open(joinpath(savelocation, "notes2graphdb.sqlite"), "", "", "")
   # t1 is a table that keeps a list of all nodes, i.e. concepts
-  var stmt: SqlQuery = sql"CREATE TABLE IF NOT EXISTS t1 (nodeid INTEGER NOT NULL UNIQUE, nodename TEXT NOT NULL UNIQUE COLLATE NOCASE, PRIMARY KEY (nodeid, nodename))"
+  # var stmt: SqlQuery = sql"CREATE TABLE IF NOT EXISTS t1 (nodeid INTEGER NOT NULL UNIQUE, nodename TEXT NOT NULL UNIQUE COLLATE NOCASE, PRIMARY KEY (nodeid, nodename))"
+  var stmt: SqlQuery = sql"CREATE TABLE IF NOT EXISTS t1 (nodeid INTEGER NOT NULL UNIQUE PRIMARY KEY, nodename TEXT NOT NULL UNIQUE COLLATE NOCASE)"
   maindb.exec(stmt)
   # t2 is a table that keeps a list of descriptions and references for each node or relation
   var stmt2: SqlQuery = sql"CREATE TABLE IF NOT EXISTS t2 (descrid INTEGER NOT NULL UNIQUE PRIMARY KEY, descr TEXT NOT NULL UNIQUE COLLATE NOCASE, ref TEXT)"
@@ -65,20 +67,26 @@ proc dblen(maindb: db_sqlite.DbConn, query: SqlQuery): int=
   return counter
 
 
-proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
-  var nodeid: int = dblen(maindb, "t1")
-  # var nodename: string = replace(nodename, "'", "''")
-  var nodename2: string = dbQuote(nodename)
-  # if node name does not exist
-  try:
-    var stmt2: string = "INSERT INTO t1 (nodeid, nodename) VALUES ($1, $2)" % [$nodeid, nodename2]
-    maindb.exec(sql(stmt2))
-    return nodeid
+# proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
+#   var nodeid: int = dblen(maindb, "t1")
+#   nodeid += 1
+#   var nodename2: string = dbQuote(nodename)
+#   try:
+#     var stmt2: string = "INSERT INTO t1 (nodeid, nodename) VALUES ($1, $2)" % [$nodeid, nodename2]
+#     maindb.exec(sql(stmt2))
+#     return nodeid
 
-  except:
-    var stmt3: string = "SELECT nodeid FROM t1 WHERE nodename = $1" % nodename2
-    nodeid = dblen(maindb, sql(stmt3))
-    return nodeid
+#   except:
+#     var stmt3: string = "SELECT nodeid FROM t1 WHERE nodename = $1" % nodename2
+#     nodeid = dblen(maindb, sql(stmt3))
+#     return nodeid
+
+
+proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
+  var nodename2: string = dbQuote(nodename)
+  maindb.exec(sql"INSERT OR IGNORE INTO t1 (nodename) VALUES (?)", nodename2)
+  var nodeid = parseInt(maindb.getValue(sql"SELECT nodeid FROM t1 WHERE nodename = (?)", nodename2))
+  return nodeid
 
 
 
@@ -158,19 +166,39 @@ proc derivatives(maindb: db_sqlite.DbConn, nodeid: int): string =
 
 
 
+# proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
+#   ## Returns node ID of a query
+#   var final: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t1 WHERE nodename = '$1'" % query))
+#   # if not found search t6
+#   if final.len == 0:
+#     let final2: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t6 WHERE derivative = '$1'" % query))
+#     if final2.len == 0:
+#       echo "Query is not in the database"
+#       return -1
+
+#   else:
+#     var nodeids: string = final[0][0]
+#     var nodeid: int = parseInt(nodeids)
+#     return nodeid
+
+
+
 proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
   ## Returns node ID of a query
-  var final: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t1 WHERE nodename = '$1'" % query))
+  let final = maindb.getValue(sql"SELECT nodeid FROM t1 WHERE nodename = (?)", dbQuote(query))
   # if not found search t6
   if final.len == 0:
-    let final2: seq[Row] = maindb.getAllRows(sql("SELECT nodeid FROM t6 WHERE derivative = '$1'" % query))
+    let final2 = maindb.getValue(sql"SELECT nodeid FROM t6 WHERE derivative = (?)", dbQuote(query))
     if final2.len == 0:
       echo "Query is not in the database"
       return -1
+    else:
+      var nodeid: int = parseInt(final2)
+      return nodeid
+
 
   else:
-    var nodeids: string = final[0][0]
-    var nodeid: int = parseInt(nodeids)
+    var nodeid: int = parseInt(final)
     return nodeid
 
 
@@ -186,8 +214,8 @@ proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): string =
   else:
     var nodenames: seq[string] = newSeq[string](nmatches)
     for m in 0..<nmatches:
-      let idd: int = parseInt(final[0][m])
-      var match: string = maindb.getValue(sql"SELECT nodename FROM t1 WHERE nodeid = '?'", idd)
+      var idd: int = parseInt(final[m][0])
+      var match: string = maindb.getValue(sql"SELECT nodename FROM t1 WHERE nodeid = ?", idd)
       nodenames[m] = match
 
     return join(nodenames, ", ")
@@ -275,6 +303,6 @@ proc update(maindb: db_sqlite.DbConn, inputfile: string): int =
           var stems: seq[string] = nodes
           # var refs2: string = join(refs, ";")
           discard add_proposition(maindb, line2, nodes, stems, refs)  # populate tables
-      
+  
   return 0
   
