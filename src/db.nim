@@ -197,7 +197,7 @@ proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): seq[string] =
     for m in 0..<nmatches:
       var idd: int = parseInt(final[m][0])
       var match: string = maindb.getValue(sql"SELECT nodename FROM t1 WHERE nodeid = ?", idd)
-      nodenames[m] = match
+      nodenames[m] = toLower(match)
 
     return nodenames
 

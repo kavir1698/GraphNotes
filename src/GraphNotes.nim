@@ -79,9 +79,6 @@ textArea.fontFamily="Georgia"
 var saveloc: string = "./"
 textArea.addLine("Save location is " & saveloc)
 
-# savelocButton.onClick = proc(event: ClickEvent) =
-#   var dialog = newOpenDirectoryDialog
-
 
 ### functions
 discard create_bibfile(saveloc)
@@ -93,9 +90,8 @@ else:
   maindb = initialize_database(saveloc)
 
 textArea.addLine("Database and bibfile loaded in the current directory.")
+
 button2.onClick = proc(event: ClickEvent) =
-  # let res = window.msgBox("Hello.\n\nThis message box is created with \"msgBox()\" and has three buttons.", "Title of message box", "Button 1", "Button 2", "Button 3")
-  # textArea.addLine("Message box closed, result = " & $res)
   try:
     var dialog = newOpenFileDialog()
     dialog.title = "Select database file..."
@@ -114,10 +110,6 @@ button2.onClick = proc(event: ClickEvent) =
 
 var notefile: string
 button.onClick = proc(event: ClickEvent) =
-# Set an event handler for the "onClick" event (here as anonymous proc).
-  # textArea.addLine("Button 1 clicked, message box opened.")
-  # window.alert("This is a simple message box.")
-  # textArea.addLine("Message box closed.")
   try:
     var dialog = newOpenFileDialog()
     dialog.title = "Select note file..."
@@ -132,15 +124,15 @@ button.onClick = proc(event: ClickEvent) =
     discard 1
 
 
-button.onClick= proc(event: ClickEvent) = 
-  textArea.dispose()
+clearButton.onClick= proc(event: ClickEvent) = 
+  textArea.text=""
 
 var query: string
 var related: string
 
 proc searchclick()=
   query = queryBox.text
-  related = relatedBox.text
+  related = toLower(relatedBox.text)
   # textArea.addLine("Query is " & query)
   if query == "*":
     var nnodes = dblen(maindb, "t1")
@@ -198,10 +190,6 @@ search.onClick = proc(event: ClickEvent)=
     searchclick()
 
 queryBox.onKeyDown = proc(event: KeyboardEvent)=
-# # continuous search. For this, i need onKeyUp
-# query = queryBox.text
-# var queryid: int = find_nodeid(maindb, query)
-# if queryid != -1:
   if Key_Return.isDown():
     searchclick()
 
@@ -214,21 +202,16 @@ relatedBox.onKeyDown = proc(event: KeyboardEvent)=
 #   2. Stem words
 
 
-container.onKeyDown = proc(event: KeyboardEvent) =
-  # Ctrl + Q -> Quit application
-  if Key_Q.isDown() and Key_ControlL.isDown():
-    maindb.close()
-    app.quit()
+# container.onKeyDown = proc(event: KeyboardEvent) =
+#   # Ctrl + Q -> Quit application
+#   if Key_Q.isDown() and Key_ControlL.isDown():
+#     maindb.close()
+#     app.quit()
 
 
 window.onCloseClick = proc(event: CloseClickEvent) =
-  # case window.msgBox("Do you want to quit?", "Quit?", "Quit", "Minimize", "Cancel")
-  # of 1:
   maindb.close()
   window.dispose()
-  # of 2:
-    # window.minimize()
-  # else: discard
 
 window.show()
 # Make the window visible on the screen.
