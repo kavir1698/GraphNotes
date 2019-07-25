@@ -50,13 +50,8 @@ proc initialize_database(savelocation: string): db_sqlite.DbConn =
 
 
 proc dblen(maindb: db_sqlite.DbConn, tablename: string): int=
-  var cmd: string = "SELECT Count(*) FROM $1" % tablename
-  var counter: int = 0
-  for row in maindb.fastRows(sql(cmd)):
-    counter += 1
-
-  return counter
-
+  var table_len = parseInt(maindb.getValue(sql"SELECT Count(*) FROM ?", tablename))
+  return table_len
 
 
 proc dblen(maindb: db_sqlite.DbConn, query: SqlQuery): int=
@@ -251,15 +246,27 @@ proc relationid(maindb: db_sqlite.DbConn, node1id: int, node2id: int): seq[int] 
   return k
 
 
-proc relation_descr(maindb: db_sqlite.DbConn, node1: string, node2: string): seq[seq[seq[string]]] =
+proc descriptions_from_id(maindb: db_sqlite.DbConn, descrids: seq[int]): seq[seq[string]] =
+  let ndescrs: int = descrids.len
+  var descrs: seq[string] = newSeq[string](ndescrs)
+  var refs: seq[string] = newSeq[string](ndescrs)
+  for ind in 0..<ndescrs:
+    let final: seq[Row] = maindb.getAllRows(sql"SELECT descr, ref FROM t2 WHERE descrid = ?", $descrids[ind])
+    descrs[ind] = final[0][0]
+    refs[ind] = final[0][1]
+
+  var rr = @[descrs, refs]
+  return rr
+
+
+proc relation_descr(maindb: db_sqlite.DbConn, node1: string, node2: string): seq[seq[string]] =
   let node1id: int = find_nodeid(maindb, node1)
   let node2id: int = find_nodeid(maindb, node2)
   var relationids: seq[int] = relationid(maindb, node1id, node2id)
-  let ndescr: int = relationids.len
-  var descrs: seq[seq[seq[string]]] =  newSeq[seq[seq[string]]](ndescr)
-  for nn in 0..<ndescr:
-    var descr: seq[seq[string]] = descriptions(maindb, relationids[nn])
-    descrs[nn] = descr
+  var descrs = descriptions_from_id(maindb, relationids)
+  # for nn in 0..<ndescr:
+  #   var descr: seq[seq[string]] = descriptions_id(maindb, relationids[nn])
+  #   descrs[nn] = descr
 
   return descrs
 
@@ -306,3 +313,11 @@ proc update(maindb: db_sqlite.DbConn, inputfile: string): int =
   
   return 0
   
+proc return_column(maindb: db_sqlite.DbConn, tablename: string, colname: string): seq[string] = 
+  var colrows: seq[Row] = maindb.getAllRows(sql("SELECT $1 FROM $2" % [colname, tablename]))
+  var nrows = colrows.len 
+  var output: seq[string] = newSeq[string](nrows)
+  for ind in 0..<nrows:
+    output[ind] = colrows[ind][0][1..colrows[ind][0].high-1]
+  
+  return output

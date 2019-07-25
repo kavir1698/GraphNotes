@@ -135,32 +135,41 @@ proc searchclick()=
   query = queryBox.text
   related = relatedBox.text
   # textArea.addLine("Query is " & query)
-  var queryid: int = find_nodeid(maindb, query)
-  if queryid == -1:
-    textArea.addLine("$1 does not exist in the database." % query)
+  if query == "*":
+    var nnodes = dblen(maindb, "t1")
+    textArea.addLine("There are $1 concepts/nodes in the database:" % $nnodes)
+    var colrows = return_column(maindb, "t1", "nodename")
+    textArea.addLine(join(colrows, ","))
   else:
-    # List all descriptions
-    textArea.addLine("Found the following descriptions: ")
-    var descrs: seq[seq[string]] = descriptions(maindb, queryid)
-    var ndescrs: int = descrs[0].len
-    for sss in 0..<ndescrs:
-      textArea.addLine(descrs[0][sss])
-      textArea.addLine(descrs[1][sss])
-    # List all related ids
-    var relatedc = related_concepts(maindb, queryid)
-    if related.len == 0 or not contains(relatedc, dbQuote(related)):
-      if relatedc.len > 0:
-        textArea.addLine("$1 is related to the following concepts:" % query)
-        textArea.addLine(join(relatedc, ", "))
-      else:
-        textArea.addLine("There are no related concepts to $1" % query)
+    var queryid: int = find_nodeid(maindb, query)
+    if queryid == -1:
+      textArea.addLine("$1 does not exist in the database." % query)
     else:
-      var relatedQ = dbQuote(related)
-      if contains(relatedc, relatedQ):
-        var relateddes = relation_descr(maindb, query, related)
-        textArea.addLine("The two concepts have the following links:")
-        for rr in relateddes:
-          textArea.addLine(rr[0][0])
+      # List all descriptions
+      var descrs: seq[seq[string]] = descriptions(maindb, queryid)
+      var ndescrs: int = descrs[0].len
+      # List all related ids
+      var relatedc = related_concepts(maindb, queryid)
+      if related.len == 0:
+        textArea.addLine("Descriptions for $1:" % query)
+        for sss in 0..<ndescrs:
+          textArea.addLine(descrs[0][sss])
+          textArea.addLine("Reference: " & descrs[1][sss])
+        if relatedc.len > 0:
+          textArea.addLine("$1 is related to the following concepts:" % query)
+          textArea.addLine(join(relatedc, ", "))
+        else:
+          textArea.addLine("There are no related concepts to $1" % query)
+      elif not contains(relatedc, dbQuote(related)):
+        textArea.addLine("$1 has no link to $2" % [query, related])
+      else:
+        var relatedQ = dbQuote(related)
+        if contains(relatedc, relatedQ):
+          var relateddes = relation_descr(maindb, query, related)
+          textArea.addLine("The two concepts have the following links:")
+          for rr in 0..<relateddes[0].len:
+            textArea.addLine(relateddes[0][rr])
+            textArea.addLine("References: " & relateddes[1][rr])
 
 search.onClick = proc(event: ClickEvent)=
     searchclick()
@@ -178,10 +187,8 @@ relatedBox.onKeyDown = proc(event: KeyboardEvent)=
     searchclick()
 
 # TODO:
-#   1. list all nodenames in t1 with *
 #   2. Remove [@ref] and # from prints
 #   3. BUG: middle refs are not picked up.
-#   4. BUG: does not find all related concepts.
 
 
 container.onKeyDown = proc(event: KeyboardEvent) =
