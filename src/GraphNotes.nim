@@ -151,7 +151,7 @@ proc searchclick()=
     textArea.addLine(join(colrows, ","))
     textArea.addLine("")
     textArea.scrollToBottom
-  else:
+  elif query.len > 0:
     var queryid: int = find_nodeid(maindb, query)
     if queryid == -1:
       textArea.addLine("## \"$1\" does not exist in the database." % query)
@@ -211,6 +211,7 @@ relatedBox.onKeyDown = proc(event: KeyboardEvent)=
 
 # TODO:
 #   1. Remove [@ref] and # from prints
+#   2. Stem words
 
 
 container.onKeyDown = proc(event: KeyboardEvent) =

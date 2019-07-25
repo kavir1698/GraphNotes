@@ -1,6 +1,6 @@
 # GraphNotes
 
-[![](https://img.shields.io/badge/GraphNotes-v0.1.0-blue.svg)](https://github.com/kavir1698/GraphNotes) 
+[![](https://img.shields.io/badge/GraphNotes-v0.2.0-blue.svg)](https://github.com/kavir1698/GraphNotes) 
 
 ## What is it
 
