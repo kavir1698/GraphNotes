@@ -190,7 +190,7 @@ proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
   if final.len == 0:
     let final2 = maindb.getValue(sql"SELECT nodeid FROM t6 WHERE derivative = (?)", dbQuote(query))
     if final2.len == 0:
-      echo "Query is not in the database"
+      echo "$1 is not in the database" % query
       return -1
     else:
       var nodeid: int = parseInt(final2)
@@ -204,12 +204,12 @@ proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
 
 
 
-proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): string =
+proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): seq[string] =
   ## Returns IDs if related nodes to a given ID
   let final: seq[Row] = maindb.getAllRows(sql"SELECT relatedid FROM t4 WHERE nodeid = ?", $nodeid)
   let nmatches: int = final.len
   if nmatches == 0:
-    return ""
+    return @[]
 
   else:
     var nodenames: seq[string] = newSeq[string](nmatches)
@@ -218,7 +218,7 @@ proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): string =
       var match: string = maindb.getValue(sql"SELECT nodename FROM t1 WHERE nodeid = ?", idd)
       nodenames[m] = match
 
-    return join(nodenames, ", ")
+    return nodenames
 
 
 
@@ -243,7 +243,7 @@ proc descriptions(maindb: db_sqlite.DbConn, nodeid: int): seq[seq[string]] =
 
 proc relationid(maindb: db_sqlite.DbConn, node1id: int, node2id: int): seq[int] =
   ## Returns descrids of descriptions of relations between node1id and node2id
-  let final: seq[Row] = maindb.getAllRows(sql"ELECT descrid FROM t3 WHERE nodeid = ? INTERSECT SELECT descrid FROM t3 WHERE nodeid = ?", $node1id, $node2id)
+  let final: seq[Row] = maindb.getAllRows(sql"SELECT descrid FROM t3 WHERE nodeid = ? INTERSECT SELECT descrid FROM t3 WHERE nodeid = ?", $node1id, $node2id)
   var k:seq[int] = newSeq[int](final.len)
   for i in 0..<final.len:
     k[i] = parseInt(final[i][0])

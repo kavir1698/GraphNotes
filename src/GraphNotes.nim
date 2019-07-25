@@ -37,18 +37,31 @@ var button = newButton("Add notes")
 # Create a button with a given title.
 buttonContainer.add(button)
 # Add the button to the container.
-var button2 = newButton("Open database")
+var button2 = newButton("Choose database")
 buttonContainer.add(button2)
 # var savelocButton = newButton("Save loc")
 # buttonContainer.add(savelocButton)
 
-# # Add a Label control:
-# var label = newLabel("Label")
-# container.add(label)
+## Add a Label control:
+var labelContainer = newLayoutContainer(Layout_Horizontal)
+container.add(labelContainer)
+var label = newLabel("Query")
+label.widthMode = WidthMode_Expand
+labelContainer.add(label)
+var label2 = newLabel("Second concept")
+label2.widthMode = WidthMode_Expand
+labelContainer.add(label2)
 
-# Add a TextBox control:
-var textBox = newTextBox("Enter your query...")
-container.add(textBox)
+
+# Add TextBox controls:
+var textboxContainer = newLayoutContainer(Layout_Horizontal)
+container.add(textboxContainer)
+var queryBox = newTextBox()
+textboxContainer.add(queryBox)
+var relatedBox = newTextBox()
+textboxContainer.add(relatedBox)
+var search = newButton("Search")
+textboxContainer.add(search)
 
 var textArea = newTextArea()
 # Create a multiline text box.
@@ -76,23 +89,24 @@ else:
   maindb = initialize_database(saveloc)
 
 textArea.addLine("Database and bibfile loaded in the current directory.")
-
 button2.onClick = proc(event: ClickEvent) =
   # let res = window.msgBox("Hello.\n\nThis message box is created with \"msgBox()\" and has three buttons.", "Title of message box", "Button 1", "Button 2", "Button 3")
   # textArea.addLine("Message box closed, result = " & $res)
-  var dialog = newOpenFileDialog()
-  dialog.title = "Select database file..."
-  dialog.multiple = false  # only a single file can be selected
-  dialog.directory = "./"
-  dialog.run()
-  # textArea.addLine("Note file: " & dialog.files[0])
-  var databasefile = dialog.files[0]
   try:
-    maindb = load_database_file(databasefile)
-    textArea.addLine("Loaded the selected database.")
+    var dialog = newOpenFileDialog()
+    dialog.title = "Select database file..."
+    dialog.multiple = false  # only a single file can be selected
+    dialog.directory = "./"
+    dialog.run()
+    # textArea.addLine("Note file: " & dialog.files[0])
+    var databasefile = dialog.files[0]
+    try:
+      maindb = load_database_file(databasefile)
+      textArea.addLine("Loaded the selected database.")
+    except:
+      textArea.addLine("Error: Invalid database file.")
   except:
-    textArea.addLine("Error: Invalid database file.")
-
+    discard 1
 
 var notefile: string
 button.onClick = proc(event: ClickEvent) =
@@ -100,48 +114,82 @@ button.onClick = proc(event: ClickEvent) =
   # textArea.addLine("Button 1 clicked, message box opened.")
   # window.alert("This is a simple message box.")
   # textArea.addLine("Message box closed.")
-  var dialog = newOpenFileDialog()
-  dialog.title = "Select note file..."
-  dialog.multiple = false  # only a single file can be selected
-  dialog.directory = "./"
-  dialog.run()
-  # textArea.addLine("Note file: " & dialog.files[0])
-  notefile = dialog.files[0]
-  discard update(maindb, notefile)
-  textArea.addLine("Notes incorporated.")
+  try:
+    var dialog = newOpenFileDialog()
+    dialog.title = "Select note file..."
+    dialog.multiple = false  # only a single file can be selected
+    dialog.directory = "./"
+    dialog.run()
+    # textArea.addLine("Note file: " & dialog.files[0])
+    notefile = dialog.files[0]
+    discard update(maindb, notefile)
+    textArea.addLine("Notes incorporated.")
+  except:
+    discard 1
 
 
 var query: string
-textBox.onKeyDown = proc(event: KeyboardEvent)=
-  if Key_Return.isDown():
-    query = textBox.text
-    textArea.addLine("Query is " & query)
-    var queryid: int = find_nodeid(maindb, query)
-    if queryid == -1:
-      textArea.addLine("Query does not exist in the database.")
-    else:
-      # List all descriptions
-      textArea.addLine("Found the following descriptions: ")
-      var descrs: seq[seq[string]] = descriptions(maindb, queryid)
-      var ndescrs: int = descrs[0].len
-      for sss in 0..<ndescrs:
-        textArea.addLine(descrs[0][sss])
-        textArea.addLine(descrs[1][sss])
-      # List all related ids
-      var relatedc = related_concepts(maindb, queryid)
+var related: string
+
+proc searchclick()=
+  query = queryBox.text
+  related = relatedBox.text
+  # textArea.addLine("Query is " & query)
+  var queryid: int = find_nodeid(maindb, query)
+  if queryid == -1:
+    textArea.addLine("$1 does not exist in the database." % query)
+  else:
+    # List all descriptions
+    textArea.addLine("Found the following descriptions: ")
+    var descrs: seq[seq[string]] = descriptions(maindb, queryid)
+    var ndescrs: int = descrs[0].len
+    for sss in 0..<ndescrs:
+      textArea.addLine(descrs[0][sss])
+      textArea.addLine(descrs[1][sss])
+    # List all related ids
+    var relatedc = related_concepts(maindb, queryid)
+    if related.len == 0 or not contains(relatedc, dbQuote(related)):
       if relatedc.len > 0:
         textArea.addLine("$1 is related to the following concepts:" % query)
-        textArea.addLine(relatedc)
+        textArea.addLine(join(relatedc, ", "))
       else:
         textArea.addLine("There are no related concepts to $1" % query)
+    else:
+      var relatedQ = dbQuote(related)
+      if contains(relatedc, relatedQ):
+        var relateddes = relation_descr(maindb, query, related)
+        textArea.addLine("The two concepts have the following links:")
+        for rr in relateddes:
+          textArea.addLine(rr[0][0])
 
-# TODO: list all nodenames in t1 with *
+search.onClick = proc(event: ClickEvent)=
+    searchclick()
+
+queryBox.onKeyDown = proc(event: KeyboardEvent)=
+# # continuous search. For this, i need onKeyUp
+# query = queryBox.text
+# var queryid: int = find_nodeid(maindb, query)
+# if queryid != -1:
+  if Key_Return.isDown():
+    searchclick()
+
+relatedBox.onKeyDown = proc(event: KeyboardEvent)=
+  if Key_Return.isDown():
+    searchclick()
+
+# TODO:
+#   1. list all nodenames in t1 with *
+#   2. Remove [@ref] and # from prints
+#   3. BUG: middle refs are not picked up.
+#   4. BUG: does not find all related concepts.
+
 
 container.onKeyDown = proc(event: KeyboardEvent) =
   # Ctrl + Q -> Quit application
   if Key_Q.isDown() and Key_ControlL.isDown():
     maindb.close()
     app.quit()
+
 
 window.onCloseClick = proc(event: CloseClickEvent) =
   # case window.msgBox("Do you want to quit?", "Quit?", "Quit", "Minimize", "Cancel")
