@@ -62,20 +62,6 @@ proc dblen(maindb: db_sqlite.DbConn, query: SqlQuery): int=
   return counter
 
 
-# proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
-#   var nodeid: int = dblen(maindb, "t1")
-#   nodeid += 1
-#   var nodename2: string = dbQuote(nodename)
-#   try:
-#     var stmt2: string = "INSERT INTO t1 (nodeid, nodename) VALUES ($1, $2)" % [$nodeid, nodename2]
-#     maindb.exec(sql(stmt2))
-#     return nodeid
-
-#   except:
-#     var stmt3: string = "SELECT nodeid FROM t1 WHERE nodename = $1" % nodename2
-#     nodeid = dblen(maindb, sql(stmt3))
-#     return nodeid
-
 
 proc add_t1(maindb: db_sqlite.DbConn, nodename: string): int =
   var nodename2: string = dbQuote(nodename)
@@ -134,8 +120,8 @@ proc add_proposition(maindb: db_sqlite.DbConn, proposition: string, nodes: seq, 
     if stems[nn] != nodes[nn]:
       add_t6(maindb, nodeid, nodes[nn])
 
+    var descrid: int = add_t2(maindb, proposition, join(refs, ", "))
     for rff in 0..<refs.len:
-      var descrid: int = add_t2(maindb, proposition, refs[rff])
       add_t3(maindb, nodeid, descrid)
 
 
@@ -201,7 +187,7 @@ proc find_nodeid(maindb: db_sqlite.DbConn, query: string): int =
 
 proc related_concepts(maindb: db_sqlite.DbConn, nodeid: int): seq[string] =
   ## Returns IDs if related nodes to a given ID
-  let final: seq[Row] = maindb.getAllRows(sql"SELECT relatedid FROM t4 WHERE nodeid = ?", $nodeid)
+  let final: seq[Row] = maindb.getAllRows(sql"SELECT relatedid FROM t4 WHERE nodeid = ? UNION SELECT nodeid FROM t4 WHERE relatedid = ?", $nodeid, $nodeid)
   let nmatches: int = final.len
   if nmatches == 0:
     return @[]
@@ -304,12 +290,11 @@ proc update(maindb: db_sqlite.DbConn, inputfile: string): int =
         # there were hash tags in line
         var nodes: seq[string] = allr[0]
         var refs: seq[string] = allr[1]
-        if nodes.len != 0:
-          # TODO: install porter stemmer and take word stems
-          # stems = word_stems(nodes)
-          var stems: seq[string] = nodes
-          # var refs2: string = join(refs, ";")
-          discard add_proposition(maindb, line2, nodes, stems, refs)  # populate tables
+        # TODO: install porter stemmer and take word stems
+        # stems = word_stems(nodes)
+        var stems: seq[string] = nodes
+        # var refs2: string = join(refs, ";")
+        discard add_proposition(maindb, line2, nodes, stems, refs)  # populate tables
   
   return 0
   

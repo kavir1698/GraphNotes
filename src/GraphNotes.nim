@@ -41,6 +41,8 @@ var button2 = newButton("Choose database")
 buttonContainer.add(button2)
 # var savelocButton = newButton("Save loc")
 # buttonContainer.add(savelocButton)
+var clearButton = newButton("Clear canvas")
+buttonContainer.add(clearButton)
 
 ## Add a Label control:
 var labelContainer = newLayoutContainer(Layout_Horizontal)
@@ -58,6 +60,7 @@ var textboxContainer = newLayoutContainer(Layout_Horizontal)
 container.add(textboxContainer)
 var queryBox = newTextBox()
 textboxContainer.add(queryBox)
+queryBox.focus()
 var relatedBox = newTextBox()
 textboxContainer.add(relatedBox)
 var search = newButton("Search")
@@ -68,8 +71,9 @@ var textArea = newTextArea()
 # By default, a text area is empty and editable.
 container.add(textArea)
 # Add the text area to the container.
-
-
+textArea.editable=false
+textArea.fontSize=16
+textArea.fontFamily="Georgia"
 ### variables
 
 var saveloc: string = "./"
@@ -128,6 +132,9 @@ button.onClick = proc(event: ClickEvent) =
     discard 1
 
 
+button.onClick= proc(event: ClickEvent) = 
+  textArea.dispose()
+
 var query: string
 var related: string
 
@@ -137,13 +144,19 @@ proc searchclick()=
   # textArea.addLine("Query is " & query)
   if query == "*":
     var nnodes = dblen(maindb, "t1")
-    textArea.addLine("There are $1 concepts/nodes in the database:" % $nnodes)
+    textArea.addLine("")
+    textArea.addLine("## There are $1 concepts/nodes in the database:" % $nnodes)
+    textArea.addLine("")
     var colrows = return_column(maindb, "t1", "nodename")
     textArea.addLine(join(colrows, ","))
+    textArea.addLine("")
+    textArea.scrollToBottom
   else:
     var queryid: int = find_nodeid(maindb, query)
     if queryid == -1:
-      textArea.addLine("$1 does not exist in the database." % query)
+      textArea.addLine("## \"$1\" does not exist in the database." % query)
+      textArea.addLine("")
+      textArea.scrollToBottom
     else:
       # List all descriptions
       var descrs: seq[seq[string]] = descriptions(maindb, queryid)
@@ -151,25 +164,35 @@ proc searchclick()=
       # List all related ids
       var relatedc = related_concepts(maindb, queryid)
       if related.len == 0:
-        textArea.addLine("Descriptions for $1:" % query)
+        textArea.addLine("## Descriptions for \"$1\":" % query)
+        textArea.addLine("")
         for sss in 0..<ndescrs:
           textArea.addLine(descrs[0][sss])
           textArea.addLine("Reference: " & descrs[1][sss])
+          textArea.addLine("")
         if relatedc.len > 0:
-          textArea.addLine("$1 is related to the following concepts:" % query)
+          textArea.addLine("### \"$1\" is related to the following concepts:" % query)
           textArea.addLine(join(relatedc, ", "))
+          textArea.addLine("")
         else:
-          textArea.addLine("There are no related concepts to $1" % query)
+          textArea.addLine("## There are no related concepts to $1" % query)
+          textArea.addLine("")
+        textArea.scrollToBottom
       elif not contains(relatedc, dbQuote(related)):
-        textArea.addLine("$1 has no link to $2" % [query, related])
+        textArea.addLine("\"$1\" has no link to \"$2\"" % [query, related])
+        textArea.addLine("")
+        textArea.scrollToBottom
       else:
         var relatedQ = dbQuote(related)
         if contains(relatedc, relatedQ):
           var relateddes = relation_descr(maindb, query, related)
-          textArea.addLine("The two concepts have the following links:")
+          textArea.addLine("## \"$1\" and \"$2\" have the following link(s):" % [query, related])
+          textArea.addLine("")
           for rr in 0..<relateddes[0].len:
             textArea.addLine(relateddes[0][rr])
             textArea.addLine("References: " & relateddes[1][rr])
+            textArea.addLine("")
+        textArea.scrollToBottom
 
 search.onClick = proc(event: ClickEvent)=
     searchclick()
@@ -187,8 +210,7 @@ relatedBox.onKeyDown = proc(event: KeyboardEvent)=
     searchclick()
 
 # TODO:
-#   2. Remove [@ref] and # from prints
-#   3. BUG: middle refs are not picked up.
+#   1. Remove [@ref] and # from prints
 
 
 container.onKeyDown = proc(event: KeyboardEvent) =
